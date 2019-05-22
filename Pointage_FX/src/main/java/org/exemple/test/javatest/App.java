@@ -27,15 +27,14 @@ public class App extends Application implements Runnable  {
 	private Button connectButton;
 	private TextField urlTextField;
 	private TextField topicTextField;
-	private TextField brokerTextField1,brokerTextField2,brokerTextField3,brokerTextField4;
+	private TextField brokerTextField1,brokerTextField2;
 	private TextArea logTextArea;
 	private boolean isSignedIn=false;
-	private String url,topic,heure_arrivee,date_arrivee,heurelue,heure_depart,datelue,UIDlue,date_depart;
+	private String url,topic,heure_arrivee,date_arrivee,heurelue,heure_depart,datelue,UIDlue,date_depart,pointage_arrivee,pointage_depart;
 	private String[] UID= new String[] {"335A791B0B", "BB0A5D0DE1"};
 	private int nb_carte=UID.length;
 	private MqttClient client;
 	private boolean[] active = new boolean[nb_carte];
-	private String[] pointage = new String[nb_carte*2];
 	private List<String> cartes= new ArrayList<String>();
 
 	@Override
@@ -62,14 +61,8 @@ public class App extends Application implements Runnable  {
 		brokerTextField1.setEditable(false);
 		brokerTextField2 = new TextField("Pointage 2");
 		brokerTextField2.setEditable(false);
-		brokerTextField3 = new TextField("Premier pointage, autre carte");
-		brokerTextField3.setEditable(false);
-		brokerTextField4 = new TextField("Pointage 2");
-		brokerTextField4.setEditable(false);
 		gpcenter.add(brokerTextField1, 0, 5);
 		gpcenter.add(brokerTextField2, 0,6);
-		gpcenter.add(brokerTextField3, 0, 8);
-		gpcenter.add(brokerTextField4, 0,9);
 		brokerTextField1.setPrefSize(500,24);
 		root.setCenter(gpcenter);
 		logTextArea = new TextArea("Derniers enregistrements: \n");
@@ -141,8 +134,6 @@ public class App extends Application implements Runnable  {
 			connectButton.setText("Deconnexion");
 			brokerTextField1.setDisable(false);
 			brokerTextField2.setDisable(false);
-			brokerTextField3.setDisable(false);
-			brokerTextField4.setDisable(false);
 			logTextArea.setDisable(false);
 		}
 		else {
@@ -151,8 +142,6 @@ public class App extends Application implements Runnable  {
 			connectButton.setText("Connexion");
 			brokerTextField1.setDisable(true);
 			brokerTextField2.setDisable(true);
-			brokerTextField3.setDisable(true);
-			brokerTextField4.setDisable(true);
 			logTextArea.setDisable(true);
 		}
 
@@ -172,32 +161,31 @@ public class App extends Application implements Runnable  {
 					
 					//Looking for the UID read in the stored UID
 					if(cartes.contains(UIDlue)) {
-						System.out.println(cartes.indexOf(UIDlue));
 						//If the card hasn't been read yet
 						if (active[cartes.indexOf(UIDlue)]==false) {
 							date_arrivee=datelue;
 							heure_arrivee=heurelue;
-							pointage[0]=UIDlue+" est arrivé à "+ heure_arrivee + " le "+date_arrivee+ "\n";
-							brokerTextField1.setText(pointage[0]);
+							pointage_arrivee=UIDlue+" est arrivé à "+ heure_arrivee + " le "+date_arrivee+ "\n";
+							brokerTextField1.setText(pointage_arrivee);
 							brokerTextField2.setText("En attente");
-							enregistrer(pointage[0]);
+							enregistrer(pointage_arrivee);
 							active[cartes.indexOf(UIDlue)]=true;
 						}
 						else {
 							heure_depart=heurelue;
 							date_depart=datelue;
-							pointage[1]=UIDlue+" est parti à "+ heure_depart + " le "+date_depart+ "\n";
-							brokerTextField2.setText(pointage[1]);
-							enregistrer(pointage[1]);
+							pointage_depart=UIDlue+" est parti à "+ heure_depart + " le "+date_depart+ "\n";
+							brokerTextField2.setText(pointage_depart);
+							enregistrer(pointage_depart);
 							active[cartes.indexOf(UIDlue)]=false;
 						}
 					}
-					else System.out.println("Carte inconnue!");	
+					else logTextArea.appendText("Carte inconnue lue! UID: " + UIDlue +"\n");	
 				}
 				Thread.sleep(1000);
 			}
 			catch(Exception e) {
-				System.out.println("Erreur: "+e);
+				
 			}
 		}
 

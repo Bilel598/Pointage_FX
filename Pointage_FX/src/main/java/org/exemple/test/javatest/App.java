@@ -1,6 +1,10 @@
 package org.exemple.test.javatest;
 
 
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.exemple.test.mqtt.SimpleMqttCallBack;
@@ -19,17 +23,20 @@ import javafx.stage.WindowEvent;
 
 
 public class App extends Application implements Runnable  {
-
+	//Attributs
 	private Button connectButton;
 	private TextField urlTextField;
 	private TextField topicTextField;
 	private TextField brokerTextField1,brokerTextField2,brokerTextField3,brokerTextField4;
 	private TextArea logTextArea;
 	private boolean isSignedIn=false;
-	private int compte=0,j=0,compte1=0;
-	private String url,topic,heure,date,heurelue,datelue,UIDlue,pointage1,pointage2,uid;
-	private String[] UID= {"335A791B0B", "BB0A5D0DE1"};
+	private String url,topic,heure_arrivee,date_arrivee,heurelue,heure_depart,datelue,UIDlue,date_depart;
+	private String[] UID= new String[] {"335A791B0B", "BB0A5D0DE1"};
+	private int nb_carte=UID.length;
 	private MqttClient client;
+	private boolean[] active = new boolean[nb_carte];
+	private String[] pointage = new String[nb_carte*2];
+	private List<String> cartes= new ArrayList<String>();
 
 	@Override
 	public void start(Stage stage) {
@@ -65,7 +72,7 @@ public class App extends Application implements Runnable  {
 		gpcenter.add(brokerTextField4, 0,9);
 		brokerTextField1.setPrefSize(500,24);
 		root.setCenter(gpcenter);
-		logTextArea = new TextArea();
+		logTextArea = new TextArea("Derniers enregistrements: \n");
 		logTextArea.setEditable(false);
 		root.setBottom(logTextArea);
 		this.adjustControls();
@@ -91,8 +98,6 @@ public class App extends Application implements Runnable  {
 		stage.setScene(scene);
 		stage.show();
 	}
-
-
 	private void signIn(){
 		System.out.println("Vous êtes dans la méthode signIn.");
 		isSignedIn=true;
@@ -153,44 +158,43 @@ public class App extends Application implements Runnable  {
 
 	}
 	public void run() {
+		cartes.add("335A791B0B");
+		cartes.add("BB0A5D0DE1");
 		while(this.isSignedIn) {
-			
 			try {
 				if(SimpleMqttCallBack.detect==true && SimpleMqttCallBack.s.isEmpty()!=true) { 	//Qd message arrive et que la pile n'est pas vide
-//					Decorticage du message arrivant
+					System.out.println("Ok");
+					// Division of the message
 					String[] tab = SimpleMqttCallBack.s.getLast().split("T");
 					datelue = tab[0];
 					heurelue=tab[1];
 					UIDlue=tab[2];
 					
-					for(int i=0;i<UID.length;i++) {
-						if(UIDlue.equals(UID[i])) {
-							compte=compte+1;
-							j=i;
+					//Looking for the UID read in the stored UID
+					if(cartes.contains(UIDlue)) {
+						System.out.println(cartes.indexOf(UIDlue));
+						//If the card hasn't been read yet
+						if (active[cartes.indexOf(UIDlue)]==false) {
+							date_arrivee=datelue;
+							heure_arrivee=heurelue;
+							pointage[0]=UIDlue+" est arrivé à "+ heure_arrivee + " le "+date_arrivee+ "\n";
+							brokerTextField1.setText(pointage[0]);
+							brokerTextField2.setText("En attente");
+							enregistrer(pointage[0]);
+							active[cartes.indexOf(UIDlue)]=true;
+						}
+						else {
+							heure_depart=heurelue;
+							date_depart=datelue;
+							pointage[1]=UIDlue+" est parti à "+ heure_depart + " le "+date_depart+ "\n";
+							brokerTextField2.setText(pointage[1]);
+							enregistrer(pointage[1]);
+							active[cartes.indexOf(UIDlue)]=false;
 						}
 					}
-					if(compte==1) {
-						uid=UID[j];
-						date=datelue;
-						heure=heurelue;
-					}
-					pointage1=uid+" est arrivé à "+ heure + " le "+date+ "\n";
-					if(compte==2) {
-						pointage2=UIDlue+" est parti à "+ heurelue + " le "+datelue+ "\n";
-						compte=0;
-						brokerTextField2.setText(pointage2);
-						enregistrer(pointage1,pointage2);
-					}
-					else
-						brokerTextField2.setText("En attente");
-					brokerTextField1.setText(pointage1);
-					if(!UIDlue.equals(uid) ) 
-						System.out.println("Autre carte");
-//					++compte1;
-//					--compte;
-					brokerTextField3.setText(pointage1);
+					else System.out.println("Carte inconnue!");	
 				}
-				Thread.sleep(1500);
+				Thread.sleep(1000);
 			}
 			catch(Exception e) {
 				System.out.println("Erreur: "+e);
@@ -200,11 +204,11 @@ public class App extends Application implements Runnable  {
 	}
 
 
-	private void enregistrer(String pointage12, String pointage22) {
-		
-		logTextArea.appendText(pointage12 + pointage22);
+	private void enregistrer(String p) {
+
+		logTextArea.appendText(p);
 		System.out.println(SimpleMqttCallBack.s);
-		
+
 	}
 
 
